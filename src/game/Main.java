@@ -16,7 +16,6 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -44,13 +43,12 @@ public class Main extends Application implements EventHandler<ActionEvent> {
     @Override
     public void start(Stage primaryStage) {
         // Set the stage
-        Stage window = primaryStage;
-        window.setTitle("Slides and Step-stools");
+        primaryStage.setTitle("Slides and Step-stools");
 
         // Set some formatting for the stage.
-        window.setHeight(732);
-        window.setWidth(900);
-        window.setResizable(false);
+        primaryStage.setHeight(732);
+        primaryStage.setWidth(900);
+        primaryStage.setResizable(false);
 
         // Import images.
         Image imgboard = new Image("./img/board.png");
@@ -129,8 +127,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         Scene scene = new Scene(aggregate);
 
         // show the board scene.
-        window.setScene(scene);
-        window.show();
+        primaryStage.setScene(scene);
+        primaryStage.show();
 
         System.out.println(0 % 4);
     }
@@ -229,7 +227,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         dialog.show();
     }
 
-    public void saveGame() {
+    private void saveGame() {
         Date date = new Date();
         List<String> lines = Arrays.asList(Integer.toString(numPlayers), Integer.toString(turn));
         Path file = Paths.get("savedata" + date.getTime() + ".txt");
@@ -245,9 +243,9 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
     }
 
-    static int getSpinnerNumber() {
-        int result = 1 + (int)(Math.random() * (6));
-        return result;
+    private int getSpinnerNumber() {
+
+        return 1 + (int)(Math.random() * (6));
     }
 
     private void move(ImageView player, int spaces) {
