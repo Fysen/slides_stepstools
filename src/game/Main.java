@@ -10,37 +10,45 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 import javafx.scene.text.Text;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+
 import static javafx.geometry.Pos.BOTTOM_CENTER;
 import static javafx.geometry.Pos.CENTER;
 
-//public static final Image IMGP1 = new Image("./img/p1gamepiece.png");
-//public static final Image IMGP2 = new Image("./img/p1gamepiece.png");
-//public static final Image IMGP3 = new Image("./img/p1gamepiece.png");
-//public static final Image IMGP4 = new Image("./img/p1gamepiece.png");
-
 public class Main extends Application implements EventHandler<ActionEvent> {
 
-    private Stage window;
-    private Scene scene0, scene1, scene2, scene3;
+    // Variables declared in top-level to allow access to them from methods outside 'start'.
+    private int dice;
+    private int numPlayers = -1;
+    private int turn;
+    private ImageView[] allPlayers = new ImageView[4];
 
     public static void main(String[] args) {
+
         Application.launch(args);
     }
 
     @Override
     public void start(Stage primaryStage) {
         // Set the stage
-        window = primaryStage;
+        Stage window = primaryStage;
         window.setTitle("Slides and Step-stools");
 
         // Set some formatting for the stage.
+        window.setHeight(732);
         window.setWidth(900);
         window.setResizable(false);
 
@@ -55,24 +63,33 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         ivboard.setImage(imgboard);
 
         // Initialize the array that stores all players as ImageViews.
-        ImageView[] allPlayers = new ImageView[4];
         allPlayers[0] = new ImageView();
         allPlayers[0].setImage(imgp1);
+        allPlayers[0].setX(-10);
         allPlayers[1] = new ImageView();
         allPlayers[1].setImage(imgp2);
+        allPlayers[1].setX(5);
         allPlayers[2] = new ImageView();
         allPlayers[2].setImage(imgp3);
+        allPlayers[2].setX(20);
         allPlayers[3] = new ImageView();
         allPlayers[3].setImage(imgp4);
+        allPlayers[3].setX(34);
 
         // Create a menu VBox
-        Label rollresult = new Label("Roll Result:");
+        Label rollresultlbl = new Label("Roll Result:");
+        Label rollresult = new Label("");
         Button roll = new Button("Roll");
-        roll.setOnAction(e -> util.roll());
+        roll.setOnAction(e -> {
+            dice = getSpinnerNumber();
+            rollresult.setText(Integer.toString(dice));
+            move(allPlayers[turn % numPlayers], dice);
+            turn++;
+        });
         Button save = new Button("Save Game");
-        save.setOnAction(e -> util.saveGame());
+        save.setOnAction(e -> saveGame());
         Button load = new Button("Load Game");
-        load.setOnAction(e -> util.loadGame());
+        load.setOnAction(e -> loadGame());
         Button newgame = new Button("New Game");
         newgame.setOnAction(e -> newGame());
         Button exit = new Button("Exit");
@@ -85,82 +102,87 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         menu.setSpacing(10);
 
         // Add all the things made to the menu VBox.
-        menu.getChildren().add(rollresult);
-        menu.getChildren().add(roll);
-        menu.getChildren().add(save);
-        menu.getChildren().add(load);
-        menu.getChildren().add(newgame);
-        menu.getChildren().add(exit);
+        menu.getChildren().addAll(rollresultlbl, rollresult, roll, save, load, newgame, exit);
 
         // Some inner formatting of the menu VBox.
         VBox.setMargin(rollresult, new Insets(0, 0, 400, 0));
         VBox.setMargin(exit, new Insets(0, 0, 20, 0));
 
-        // Stackpane for blank board.
-        StackPane blankboard = new StackPane();
-        blankboard.getChildren().addAll(ivboard);
+        // AnchorPane for board.
+        StackPane board = new StackPane();
+        AnchorPane boardtiles = new AnchorPane();
+        AnchorPane.setBottomAnchor(allPlayers[0], 0.0);
+        AnchorPane.setBottomAnchor(allPlayers[1], 0.0);
+        AnchorPane.setBottomAnchor(allPlayers[2], 0.0);
+        AnchorPane.setBottomAnchor(allPlayers[3], 0.0);
+        AnchorPane.setLeftAnchor(allPlayers[0], (0.0 + allPlayers[0].getX()));
+        AnchorPane.setLeftAnchor(allPlayers[1], (0.0 + allPlayers[1].getX()));
+        AnchorPane.setLeftAnchor(allPlayers[2], (0.0 + allPlayers[2].getX()));
+        AnchorPane.setLeftAnchor(allPlayers[3], (0.0 + allPlayers[3].getX()));
+        boardtiles.getChildren().addAll(allPlayers[0], allPlayers[1], allPlayers[2], allPlayers[3]);
+        board.getChildren().addAll(ivboard, boardtiles);
 
-        // StackPane for 2-player game.
-        StackPane twoplayers = new StackPane();
-        twoplayers.getChildren().addAll(ivboard);
+        // Full scene layout.
+        HBox aggregate = new HBox();
+        aggregate.getChildren().addAll(board, menu);
+        aggregate.setPrefSize(704, 702);
+        Scene scene = new Scene(aggregate);
 
-        // StackPane for 3-player game.
-        StackPane threeplayers = new StackPane();
-        threeplayers.getChildren().addAll(ivboard);
-
-        // StackPane for 4-player game.
-        StackPane fourplayers = new StackPane();
-        fourplayers.getChildren().addAll(ivboard);
-
-        // Layout for blank board.
-        HBox layout0 = new HBox();
-        layout0.getChildren().addAll(blankboard, menu);
-        scene0 = new Scene(layout0);
-
-        // Layout for 2-player game.
-        HBox layout1 = new HBox();
-        layout1.getChildren().addAll(twoplayers, menu);
-        scene1 = new Scene(layout1);
-
-        // Layout for 3-player game.
-        HBox layout2 = new HBox();
-        layout2.getChildren().addAll(threeplayers, menu);
-        scene2 = new Scene(layout2);
-
-        // Layout for 4-player game.
-        HBox layout3 = new HBox();
-        layout3.getChildren().addAll(fourplayers, menu);
-        scene3 = new Scene(layout3);
-
-
-        window.setScene(scene3);
+        // show the board scene.
+        window.setScene(scene);
         window.show();
 
+        System.out.println(0 % 4);
     }
 
     @Override
     public void handle(ActionEvent event) {
+
         String eventcase = event.getSource().toString().toLowerCase(); // For finding keywords for event.
-
-        // Menu button event handlers.
-        if(eventcase.contains("roll")) {util.roll();}
-        if(eventcase.contains("save")) {util.saveGame();}
-        if(eventcase.contains("load")) {util.loadGame();}
-        if(eventcase.contains("new")) {newGame();}
-        if(eventcase.contains("exit")) {System.exit(0);}
-
         // New Game event handlers.
-        if(eventcase.contains("two")) {
-            System.out.println("Yeah, that was a button.");
-            ((Node)(event.getSource())).getScene().getWindow().hide();
+        if (eventcase.contains("two")) {
+            // Reassign per-game variables.
+            numPlayers = 2;
+            turn = 0;
+
+            // Only have the relevant pieces shown.
+            allPlayers[0].setVisible(true);
+            allPlayers[1].setVisible(true);
+            allPlayers[2].setVisible(false);
+            allPlayers[3].setVisible(false);
+
+            // Reset positions for relevant pieces.
+            for (int i = 0; i < 2; i++) {
+                AnchorPane.setLeftAnchor(allPlayers[i], allPlayers[i].getX());
+                AnchorPane.setBottomAnchor(allPlayers[i], 0.0);
+            }
+            ((Node) (event.getSource())).getScene().getWindow().hide();
         }
-        if(eventcase.contains("three")) {
-            System.out.println("Yeah, that was a button.");
-            ((Node)(event.getSource())).getScene().getWindow().hide();
+        if (eventcase.contains("three")) {
+            numPlayers = 3;
+            turn = 0;
+            allPlayers[0].setVisible(true);
+            allPlayers[1].setVisible(true);
+            allPlayers[2].setVisible(true);
+            allPlayers[3].setVisible(false);
+            for (int i = 0; i < 3; i++) {
+                AnchorPane.setLeftAnchor(allPlayers[i], allPlayers[i].getX());
+                AnchorPane.setBottomAnchor(allPlayers[i], 0.0);
+            }
+            ((Node) (event.getSource())).getScene().getWindow().hide();
         }
-        if(eventcase.contains("four")) {
-            System.out.println("Yeah, that was a button.");
-            ((Node)(event.getSource())).getScene().getRoot().getScene().getWindow().hide();
+        if (eventcase.contains("four")) {
+            numPlayers = 4;
+            turn = 0;
+            allPlayers[0].setVisible(true);
+            allPlayers[1].setVisible(true);
+            allPlayers[2].setVisible(true);
+            allPlayers[3].setVisible(true);
+            for (int i = 0; i < 4; i++) {
+                AnchorPane.setLeftAnchor(allPlayers[i], allPlayers[i].getX());
+                AnchorPane.setBottomAnchor(allPlayers[i], 0.0);
+            }
+            ((Node) (event.getSource())).getScene().getWindow().hide();
         }
     }
 
@@ -170,6 +192,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         final Stage dialog = new Stage();
 
         // Some formatting.
+        dialog.setTitle("New Game");
         dialog.setWidth(200);
         dialog.setHeight(125);
         dialog.setResizable(false);
@@ -194,9 +217,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         four.setOnAction(this);
 
         // Add them to the HBox.
-        numPlayersButtons.getChildren().add(two);
-        numPlayersButtons.getChildren().add(three);
-        numPlayersButtons.getChildren().add(four);
+        numPlayersButtons.getChildren().addAll(two, three, four);
         numPlayersButtons.setAlignment(CENTER);
         numPlayersButtons.setSpacing(10);
 
@@ -206,5 +227,94 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         Scene dialogScene = new Scene(root);
         dialog.setScene(dialogScene);
         dialog.show();
+    }
+
+    public void saveGame() {
+        Date date = new Date();
+        List<String> lines = Arrays.asList(Integer.toString(numPlayers), Integer.toString(turn));
+        Path file = Paths.get("savedata" + date.getTime() + ".txt");
+        try {
+            Files.write(file, lines, Charset.forName("UTF-8"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    private void loadGame() {
+
+    }
+
+    static int getSpinnerNumber() {
+        int result = 1 + (int)(Math.random() * (6));
+        return result;
+    }
+
+    private void move(ImageView player, int spaces) {
+
+        if (numPlayers < 1) {
+            newGame();
+        } else {
+            for (int i = 0; i < spaces; i++) {
+                if (AnchorPane.getLeftAnchor(player) > 605 && AnchorPane.getBottomAnchor(player) > 640) {
+                    System.out.println("Player " + ((turn % numPlayers) + 1) + " won!");
+                    break;
+                }
+                if (AnchorPane.getLeftAnchor(player) + 88 > 690) {
+                    AnchorPane.setLeftAnchor(player, player.getX());
+                    AnchorPane.setBottomAnchor(player, AnchorPane.getBottomAnchor(player) + 54);
+                    continue;
+                }
+                AnchorPane.setLeftAnchor(player, AnchorPane.getLeftAnchor(player) + 88);
+            }
+            // Checkers for 'slides' or 'step-stools'.
+            // Landing on 18
+            if ((AnchorPane.getBottomAnchor(player) == 108) && (AnchorPane.getLeftAnchor(player) - player.getX() == 88)) {
+                AnchorPane.setLeftAnchor(player, AnchorPane.getLeftAnchor(player) + 176);
+                AnchorPane.setBottomAnchor(player, AnchorPane.getBottomAnchor(player) + 162);
+            }
+            //Landing on 34
+            if ((AnchorPane.getBottomAnchor(player) == 216) && (AnchorPane.getLeftAnchor(player) - player.getX() == 88)) {
+                AnchorPane.setLeftAnchor(player, AnchorPane.getLeftAnchor(player) + 176);
+                AnchorPane.setBottomAnchor(player, AnchorPane.getBottomAnchor(player) - 162);
+            }
+            // Landing on 38
+            if ((AnchorPane.getBottomAnchor(player) == 216) && (AnchorPane.getLeftAnchor(player) - player.getX() == 440)) {
+                AnchorPane.setLeftAnchor(player, AnchorPane.getLeftAnchor(player) - 264);
+                AnchorPane.setBottomAnchor(player, AnchorPane.getBottomAnchor(player) + 270);
+            }
+            // Landing on 42
+            if ((AnchorPane.getBottomAnchor(player) == 270) && (AnchorPane.getLeftAnchor(player) - player.getX() == 88)) {
+                AnchorPane.setBottomAnchor(player, AnchorPane.getBottomAnchor(player) + 270);
+            }
+            // Landing on 62
+            if ((AnchorPane.getBottomAnchor(player) == 378) && (AnchorPane.getLeftAnchor(player) - player.getX() == 440)) {
+                AnchorPane.setLeftAnchor(player, AnchorPane.getLeftAnchor(player) - 176);
+                AnchorPane.setBottomAnchor(player, AnchorPane.getBottomAnchor(player) - 216);
+            }
+            // Landing on 66
+            if ((AnchorPane.getBottomAnchor(player) == 432) && (AnchorPane.getLeftAnchor(player) - player.getX() == 88)) {
+                AnchorPane.setLeftAnchor(player, AnchorPane.getLeftAnchor(player) + 440);
+                AnchorPane.setBottomAnchor(player, AnchorPane.getBottomAnchor(player) - 108);
+            }
+            // Landing on 69
+            if ((AnchorPane.getBottomAnchor(player) == 432) && (AnchorPane.getLeftAnchor(player) - player.getX() == 352)) {
+                AnchorPane.setLeftAnchor(player, AnchorPane.getLeftAnchor(player) + 264);
+                AnchorPane.setBottomAnchor(player, AnchorPane.getBottomAnchor(player) + 216);
+            }
+            // Landing on 95
+            if ((AnchorPane.getBottomAnchor(player) == 594) && (AnchorPane.getLeftAnchor(player) - player.getX() == 528)) {
+                AnchorPane.setLeftAnchor(player, AnchorPane.getLeftAnchor(player) - 264);
+                AnchorPane.setBottomAnchor(player, AnchorPane.getBottomAnchor(player) - 162);
+            }
+            // Landing on 103
+            if ((AnchorPane.getBottomAnchor(player) == 648) && (AnchorPane.getLeftAnchor(player) - player.getX() == 528)) {
+                AnchorPane.setBottomAnchor(player, AnchorPane.getBottomAnchor(player) - 486);
+            }
+            if (AnchorPane.getLeftAnchor(player) > 605 && AnchorPane.getBottomAnchor(player) > 640) {
+                System.out.println("Player " + ((turn % numPlayers) + 1) + " won!");
+            }
+
+        }
     }
 }
