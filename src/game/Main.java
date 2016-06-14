@@ -15,6 +15,10 @@ import javafx.scene.text.Text;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
+import javax.swing.*;
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -129,8 +133,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         // show the board scene.
         primaryStage.setScene(scene);
         primaryStage.show();
-
-        System.out.println(0 % 4);
     }
 
     @Override
@@ -227,25 +229,133 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         dialog.show();
     }
 
+    private void gameWon() {
+        // Gump asking for number of players in new game. VBox because we want the question above the choices.
+        VBox root = new VBox();
+        final Stage dialog = new Stage();
+
+        // Some formatting.
+        dialog.setTitle("Winner!");
+        dialog.setWidth(400);
+        dialog.setHeight(150);
+        dialog.setResizable(false);
+
+        dialog.initModality(Modality.APPLICATION_MODAL); // Makes it so you can't click anywhere but this gump.
+
+        // Create VBox to hold the question and option buttons.
+        VBox dialogVbox = new VBox();
+
+        // Some formatting.
+        dialogVbox.setPadding(new Insets(15, 15, 15, 15));
+        dialogVbox.setAlignment(CENTER);
+
+        // Question label.
+        dialogVbox.getChildren().add(new Text("Player " + ((turn % numPlayers) + 1) + " has won! Do you want to play again?"));
+
+        // Make buttons for number of players (with HBox so the buttons are laid out horizontally).
+        HBox yesNoButtons = new HBox();
+        Button yes = new Button("Yes");
+        yes.setOnAction(e -> {
+            newGame();
+            ((Node) (e.getSource())).getScene().getWindow().hide();
+        });
+        Button no = new Button("No (Exit Game)");
+        no.setOnAction(e -> {
+            System.exit(0);
+            ((Node) (e.getSource())).getScene().getWindow().hide();
+        });
+
+        // Add them to the HBox.
+        yesNoButtons.getChildren().addAll(yes, no);
+        yesNoButtons.setAlignment(CENTER);
+        yesNoButtons.setSpacing(10);
+
+        // Add the question and the buttons to the main VBox.
+        root.getChildren().add(dialogVbox);
+        root.getChildren().add(yesNoButtons);
+        Scene dialogScene = new Scene(root);
+        dialog.setScene(dialogScene);
+        dialog.show();
+    }
+
     private void saveGame() {
+
         Date date = new Date();
-        List<String> lines = Arrays.asList(Integer.toString(numPlayers), Integer.toString(turn));
+        List<String> lines = Arrays.asList(Integer.toString(numPlayers),
+                Integer.toString(turn),
+                Double.toString(AnchorPane.getLeftAnchor(allPlayers[0])),
+                Double.toString(AnchorPane.getBottomAnchor(allPlayers[0])),
+                Double.toString(AnchorPane.getLeftAnchor(allPlayers[1])),
+                Double.toString(AnchorPane.getBottomAnchor(allPlayers[1])),
+                Double.toString(AnchorPane.getLeftAnchor(allPlayers[2])),
+                Double.toString(AnchorPane.getBottomAnchor(allPlayers[2])),
+                Double.toString(AnchorPane.getLeftAnchor(allPlayers[3])),
+                Double.toString(AnchorPane.getBottomAnchor(allPlayers[3])));
         Path file = Paths.get("savedata" + date.getTime() + ".txt");
         try {
             Files.write(file, lines, Charset.forName("UTF-8"));
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
     private void loadGame() {
 
+        String[] fileLines = new String[10];
+
+        JFileChooser fc = new JFileChooser(); //GUI for selecting file
+        if (fc.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+            FileReader fr; //Class for reading character files
+            BufferedReader br;
+
+            try {
+                // Step 1: Open file
+                fr = new FileReader(fc.getSelectedFile());
+                br = new BufferedReader(fr);
+
+                //Step 2: Read text
+                String text;
+                int i = 0;
+                while ((text = br.readLine()) != null) {
+                    fileLines[i] = text;
+                    i++;
+                }
+
+                // File close.
+                fr.close();
+
+            } catch (FileNotFoundException e0) { // Exception handling for failure to find file.
+                System.out.println("File not found, please check file name and try again.");
+            } catch (IOException e1) { // Exception handling for other exceptions.
+                System.out.println("We're sorry, but something went wrong....");
+            }
+        } else {
+            System.out.println("Invalid selection");
+        }
+
+        numPlayers = (int) Double.parseDouble(fileLines[0]);
+        turn = Integer.parseInt(fileLines[1]);
+        AnchorPane.setLeftAnchor(allPlayers[0], Double.parseDouble(fileLines[2]));
+        AnchorPane.setBottomAnchor(allPlayers[0], Double.parseDouble(fileLines[3]));
+        AnchorPane.setLeftAnchor(allPlayers[1], Double.parseDouble(fileLines[4]));
+        AnchorPane.setBottomAnchor(allPlayers[1], Double.parseDouble(fileLines[5]));
+        AnchorPane.setLeftAnchor(allPlayers[2], Double.parseDouble(fileLines[6]));
+        AnchorPane.setBottomAnchor(allPlayers[2], Double.parseDouble(fileLines[7]));
+        AnchorPane.setLeftAnchor(allPlayers[3], Double.parseDouble(fileLines[8]));
+        AnchorPane.setBottomAnchor(allPlayers[3], Double.parseDouble(fileLines[9]));
+
+        for (int i = 1; i <= 4; i++) {
+            if (i <= numPlayers) {
+                allPlayers[i - 1].setVisible(true);
+            } else {
+                allPlayers[i - 1].setVisible(false);
+            }
+        }
     }
 
     private int getSpinnerNumber() {
 
-        return 1 + (int)(Math.random() * (6));
+        return 1 + (int) (Math.random() * (6));
     }
 
     private void move(ImageView player, int spaces) {
@@ -255,7 +365,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         } else {
             for (int i = 0; i < spaces; i++) {
                 if (AnchorPane.getLeftAnchor(player) > 605 && AnchorPane.getBottomAnchor(player) > 640) {
-                    System.out.println("Player " + ((turn % numPlayers) + 1) + " won!");
+                    gameWon();
                     break;
                 }
                 if (AnchorPane.getLeftAnchor(player) + 88 > 690) {
@@ -285,6 +395,11 @@ public class Main extends Application implements EventHandler<ActionEvent> {
             if ((AnchorPane.getBottomAnchor(player) == 270) && (AnchorPane.getLeftAnchor(player) - player.getX() == 88)) {
                 AnchorPane.setBottomAnchor(player, AnchorPane.getBottomAnchor(player) + 270);
             }
+            // Landing on 56
+            if ((AnchorPane.getBottomAnchor(player) == 324) && (AnchorPane.getLeftAnchor(player) - player.getX() == 616)) {
+                AnchorPane.setLeftAnchor(player, AnchorPane.getLeftAnchor(player) - 352);
+                AnchorPane.setBottomAnchor(player, AnchorPane.getBottomAnchor(player) + 270);
+            }
             // Landing on 62
             if ((AnchorPane.getBottomAnchor(player) == 378) && (AnchorPane.getLeftAnchor(player) - player.getX() == 440)) {
                 AnchorPane.setLeftAnchor(player, AnchorPane.getLeftAnchor(player) - 176);
@@ -310,7 +425,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
                 AnchorPane.setBottomAnchor(player, AnchorPane.getBottomAnchor(player) - 486);
             }
             if (AnchorPane.getLeftAnchor(player) > 605 && AnchorPane.getBottomAnchor(player) > 640) {
-                System.out.println("Player " + ((turn % numPlayers) + 1) + " won!");
+                gameWon();
             }
 
         }
